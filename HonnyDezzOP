@@ -1,0 +1,275 @@
+-- SERVICIOS
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local CoreGui = game:GetService("CoreGui")
+local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
+
+-- VARIABLES
+local player = Players.LocalPlayer 
+local playerGui = player:WaitForChild("PlayerGui")
+local instantCollectEnabled = false
+local savedTeleportCFrame = nil
+
+-- GUI BASE
+local screenGui = Instance.new("ScreenGui", playerGui)
+screenGui.Name = "HonnyHub"
+screenGui.ResetOnSpawn = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+local mainFrame = Instance.new("Frame", screenGui)
+mainFrame.Size = UDim2.new(0, 320, 0, 380)
+mainFrame.Position = UDim2.new(0, 20, 0, 20)
+mainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+mainFrame.BorderSizePixel = 0
+Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 16)
+
+local purpleBorder = Instance.new("Frame", mainFrame)
+purpleBorder.Position = UDim2.new(0, -2, 0, -2)
+purpleBorder.Size = UDim2.new(1, 4, 1, 4)
+purpleBorder.BackgroundColor3 = Color3.fromRGB(138, 43, 226)
+purpleBorder.ZIndex = -1
+Instance.new("UICorner", purpleBorder).CornerRadius = UDim.new(0, 18)
+
+-- TITLE BAR
+local titleBar = Instance.new("Frame", mainFrame)
+titleBar.Size = UDim2.new(1, 0, 0, 45)
+titleBar.BackgroundTransparency = 1
+
+local titleLabel = Instance.new("TextLabel", titleBar)
+titleLabel.Size = UDim2.new(1, -55, 1, 0)
+titleLabel.Position = UDim2.new(0, 15, 0, 0)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "⚡ HONNY HUB"
+titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.TextSize = 18
+titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- MINIMIZE BUTTON
+local minimizeBtn = Instance.new("TextButton", titleBar)
+minimizeBtn.Size = UDim2.new(0, 35, 0, 35)
+minimizeBtn.Position = UDim2.new(1, -45, 0, 5)
+minimizeBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+minimizeBtn.Text = "−"
+minimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+minimizeBtn.Font = Enum.Font.GothamBold
+minimizeBtn.TextSize = 18
+minimizeBtn.BorderSizePixel = 0
+Instance.new("UICorner", minimizeBtn).CornerRadius = UDim.new(0, 8)
+
+-- TAB SYSTEM
+local tabFrame = Instance.new("Frame", mainFrame)
+tabFrame.Size = UDim2.new(1, -20, 0, 40)
+tabFrame.Position = UDim2.new(0, 10, 0, 50)
+tabFrame.BackgroundTransparency = 1
+
+local function createModernTab(parent, text, position)
+    local tab = Instance.new("TextButton", parent)
+    tab.Size = UDim2.new(0.25, -7, 1, 0)
+    tab.Position = position
+    tab.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    tab.Text = text
+    tab.TextColor3 = Color3.fromRGB(255, 255, 255)
+    tab.Font = Enum.Font.GothamBold
+    tab.TextSize = 14
+    tab.BorderSizePixel = 0
+    Instance.new("UICorner", tab).CornerRadius = UDim.new(0, 10)
+    return tab
+end
+
+local mainTab = createModernTab(tabFrame, "MAIN", UDim2.new(0, 0, 0, 0))
+local espTab = createModernTab(tabFrame, "ESP", UDim2.new(0.25, 3, 0, 0))
+local moreTab = createModernTab(tabFrame, "MORE", UDim2.new(0.5, 6, 0, 0))
+local extraTab = createModernTab(tabFrame, "EXTRA", UDim2.new(0.75, 9, 0, 0))
+
+-- CONTENT FRAMES
+local function createContentFrame()
+    local frame = Instance.new("Frame", mainFrame)
+    frame.Size = UDim2.new(1, -20, 1, -100)
+    frame.Position = UDim2.new(0, 10, 0, 95)
+    frame.BackgroundTransparency = 1
+    frame.Visible = false
+    return frame
+end
+
+local mainContent = createContentFrame()
+mainContent.Visible = true
+local espContent = createContentFrame()
+local moreContent = createContentFrame()
+local extraContent = createContentFrame()
+
+-- SWITCH TABS
+local currentTab = "Main"
+local function switchTab(tab)
+    local inactive = Color3.fromRGB(20, 20, 20)
+    local active = Color3.fromRGB(138, 43, 226)
+
+    for _, btn in ipairs({mainTab, espTab, moreTab, extraTab}) do
+        btn.BackgroundColor3 = inactive
+        btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    end
+
+    mainContent.Visible = false
+    espContent.Visible = false
+    moreContent.Visible = false
+    extraContent.Visible = false
+
+    if tab == "Main" then
+        mainTab.BackgroundColor3 = active
+        mainContent.Visible = true
+    elseif tab == "ESP" then
+        espTab.BackgroundColor3 = active
+        espContent.Visible = true
+    elseif tab == "More" then
+        moreTab.BackgroundColor3 = active
+        moreContent.Visible = true
+    elseif tab == "Extra" then
+        extraTab.BackgroundColor3 = active
+        extraContent.Visible = true
+    end
+    currentTab = tab
+end
+
+mainTab.MouseButton1Click:Connect(function() switchTab("Main") end)
+espTab.MouseButton1Click:Connect(function() switchTab("ESP") end)
+moreTab.MouseButton1Click:Connect(function() switchTab("More") end)
+extraTab.MouseButton1Click:Connect(function() switchTab("Extra") end)
+
+-- CREATE MODERN BUTTONS
+local function createModernButton(parent, text, position)
+    local button = Instance.new("TextButton", parent)
+    button.Size = UDim2.new(1, 0, 0, 45)
+    button.Position = position
+    button.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    button.Text = text
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.Font = Enum.Font.GothamBold
+    button.TextSize = 16
+    button.BorderSizePixel = 0
+    Instance.new("UICorner", button).CornerRadius = UDim.new(0, 12)
+    button.MouseEnter:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(138, 43, 226)}):Play()
+    end)
+    button.MouseLeave:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(25, 25, 25)}):Play()
+    end)
+    return button
+end
+
+-- EXTRA TAB BUTTONS
+local instantCollectBtn = createModernButton(extraContent, "⚡ INSTANT COLLECT", UDim2.new(0, 0, 0, 0))
+instantCollectBtn.MouseButton1Click:Connect(function()
+    instantCollectEnabled = true
+    instantCollectBtn.Text = "⚡ ENABLED"
+    instantCollectBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 127)
+end)
+
+local setPosBtn = createModernButton(extraContent, "📍 SET TELEPORT POSITION", UDim2.new(0, 0, 0, 60))
+setPosBtn.MouseButton1Click:Connect(function()
+    local char = player.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        savedTeleportCFrame = char.HumanoidRootPart.CFrame
+        setPosBtn.Text = "📍 POSITION SAVED"
+        setPosBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 127)
+        task.wait(2)
+        setPosBtn.Text = "📍 SET TELEPORT POSITION"
+        setPosBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    end
+end)
+
+local teleportToSavedBtn = createModernButton(extraContent, "🚀 TELEPORT TO SAVED POSITION", UDim2.new(0, 0, 0, 120))
+teleportToSavedBtn.MouseButton1Click:Connect(function()
+    local char = player.Character or player.CharacterAdded:Wait()
+    if savedTeleportCFrame and char:FindFirstChild("HumanoidRootPart") then
+        char.HumanoidRootPart.CFrame = savedTeleportCFrame
+        teleportToSavedBtn.Text = "🚀 TELEPORTED!"
+        teleportToSavedBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 127)
+        task.wait(2)
+    else
+        teleportToSavedBtn.Text = "⚠️ NO POSITION SAVED"
+        teleportToSavedBtn.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
+        task.wait(2)
+    end
+    teleportToSavedBtn.Text = "🚀 TELEPORT TO SAVED POSITION"
+    teleportToSavedBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+end)
+
+local deleteWallsBtn = createModernButton(extraContent, "🧱 DELETE ALL WALLS", UDim2.new(0, 0, 0, 180))
+deleteWallsBtn.MouseButton1Click:Connect(function()
+    local success = false
+    for i = 1, 8 do
+        local base = workspace:FindFirstChild("Base" .. i)
+        if base then
+            for _, obj in pairs(base:GetDescendants()) do
+                if obj:IsA("BasePart") and string.find(obj.Name:lower(), "wall") then
+                    obj:Destroy()
+                    success = true
+                end
+            end
+        end
+    end
+    if success then
+        deleteWallsBtn.Text = "✅ WALLS DELETED"
+        deleteWallsBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 127)
+    else
+        deleteWallsBtn.Text = "⚠️ NO WALLS FOUND"
+        deleteWallsBtn.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
+    end
+    task.wait(2)
+    deleteWallsBtn.Text = "🧱 DELETE ALL WALLS"
+    deleteWallsBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+end)
+
+-- MINIMIZAR
+local minimized = false
+minimizeBtn.MouseButton1Click:Connect(function()
+    if minimized then
+        mainFrame:TweenSize(UDim2.new(0, 320, 0, 380), "Out", "Quad", 0.3, true)
+        tabFrame.Visible = true
+        switchTab(currentTab)
+        minimizeBtn.Text = "−"
+    else
+        mainFrame:TweenSize(UDim2.new(0, 320, 0, 45), "Out", "Quad", 0.3, true)
+        tabFrame.Visible = false
+        mainContent.Visible = false
+        espContent.Visible = false
+        moreContent.Visible = false
+        extraContent.Visible = false
+        minimizeBtn.Text = "+"
+    end
+    minimized = not minimized
+end)
+
+-- DRAG
+local dragging, dragStart, startPos = false
+local function beginDrag(input)
+    dragging = true
+    dragStart = input.Position
+    startPos = mainFrame.Position
+end
+local function updateDrag(input)
+    if dragging then
+        local delta = input.Position - dragStart
+        mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end
+local function endDrag()
+    dragging = false
+end
+titleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        beginDrag(input)
+    end
+end)
+titleBar.InputChanged:Connect(function(input)
+    if dragging then
+        updateDrag(input)
+    end
+end)
+titleBar.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        endDrag()
+    end
+end)
